@@ -13,6 +13,3 @@
 2. Run `cd album` to change the directory to `album`.
 3. Run `npm install` to install the dependencies.
 4. Run `npm run dev` for a dev server. It will automatically open the browser at `http://localhost:9000`.
-
-## Demo
-
