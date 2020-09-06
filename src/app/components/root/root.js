@@ -1,6 +1,7 @@
 import '../header/header.js';
 import '../image-gallery/image-gallery.js';
 import '../pagination/pagination.js';
+import commonStyles from '../../styles/common.js';
 import imageService from '../../services/image.service.js';
 
 const template = document.createElement('template');
@@ -11,6 +12,10 @@ template.innerHTML = `
       display: flex;
       flex-direction: column;
       height: 100%;
+    }
+
+    app-image-gallery {
+      position: relative;
     }
   </style>
   <main>
@@ -25,6 +30,7 @@ class AppRoot extends HTMLElement {
     super();
 
     this.attachShadow({ mode: 'open' });
+    this.shadowRoot.adoptedStyleSheets = [commonStyles];
     this.shadowRoot.appendChild(template.content.cloneNode(true));
 
     // header
@@ -74,6 +80,14 @@ class AppRoot extends HTMLElement {
   connectedCallback() {
     imageService.getImages().then((response) => {
       this.updateGallery({ detail: response });
+    });
+
+    imageService.imageToZoom$.subscribe((imageToZoom) => {
+      if (imageToZoom) {
+        this.pagination.classList.add('hide');
+      } else {
+        this.pagination.classList.remove('hide');
+      }
     });
 
     // handle image search
