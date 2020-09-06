@@ -1,5 +1,6 @@
 import '../header/header.js';
 import '../image-gallery/image-gallery.js';
+import '../pagination/pagination.js';
 import imageService from '../../services/image.service.js';
 
 const template = document.createElement('template');
@@ -15,6 +16,7 @@ template.innerHTML = `
   <main>
     <app-header></app-header>
     <app-image-gallery></app-image-gallery>
+    <app-pagination></app-pagination>
   </main>
 `;
 
@@ -29,6 +31,8 @@ class AppRoot extends HTMLElement {
     this.header = this.shadowRoot.querySelector('app-header');
     // image-gallery
     this.imageGallery = this.shadowRoot.querySelector('app-image-gallery');
+    // pagination
+    this.pagination = this.shadowRoot.querySelector('app-pagination');
 
     this.images = [];
 
@@ -38,6 +42,11 @@ class AppRoot extends HTMLElement {
 
   updateGallery(event) {
     this.setImages(event.detail.images);
+    this.updatePagination(event.detail);
+  }
+
+  updatePagination(detail) {
+    this.pagination.setAttribute('config', JSON.stringify(detail));
   }
 
   setImages(images) {
@@ -69,10 +78,13 @@ class AppRoot extends HTMLElement {
 
     // handle image search
     this.header.addEventListener('search', this.updateGallery);
+    // handle pagination
+    this.pagination.addEventListener('paginate', this.updateGallery);
   }
 
   disconnectedCallback() {
     this.header.removeEventListener('search', this.updateGallery);
+    this.pagination.removeEventListener('paginate', this.updateGallery);
   }
 }
 
