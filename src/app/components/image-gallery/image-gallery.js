@@ -1,4 +1,6 @@
 import '../image-card/image-card.js';
+import '../smart-image/smart-image.js';
+import imageService from '../../services/image.service.js';
 import commonStyles from '../../styles/common.js';
 
 const template = document.createElement('template');
@@ -46,8 +48,54 @@ template.innerHTML = `
         column-count: 1;
       }
     }
+
+    .zoom-in {
+      cursor: zoom-in;
+    }
+
+    .zoom-out {
+      cursor: zoom-out;
+    }
+
+    .zoomed-image-container {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 100000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+
+      width: 100%;
+      min-height: 100%;
+
+      top: 0;
+      left: 0;
+    }
+
+    .zoomed-image-container img {
+      z-index: 999999;
+    }
+
+    .zoomed-image-container .close-zoom-container {
+      color: white;
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-size: 2rem;
+
+      cursor: pointer;
+    }
   </style>
   <div id="gallery-container"></div>
+  <div
+    class="zoomed-image-container hide"
+  >
+    <span class="close-zoom-container"
+      >X</span
+    >
+    <app-smart-image></app-smart-image>
+  </div>
 `;
 
 class AppImageGallery extends HTMLElement {
@@ -63,9 +111,23 @@ class AppImageGallery extends HTMLElement {
 
     // image gallery container
     this.gallery = this.shadowRoot.querySelector('#gallery-container');
+    // zoomed image container
+    this.zoomContainer = this.shadowRoot.querySelector(
+      '.zoomed-image-container'
+    );
+    // close zoom container
+    this.closeZoomContainer = this.shadowRoot.querySelector(
+      '.close-zoom-container'
+    );
+    // smart image container
+    this.smartImage = this.shadowRoot.querySelector('app-smart-image');
 
     // bind event handlers
     this.toggleLike = this.toggleLike.bind(this);
+    this.activateImage = this.activateImage.bind(this);
+    this.closeZoomImageContainer = this.closeZoomImageContainer.bind(this);
+    this.zoom = this.zoom.bind(this);
+    this.keyDown = this.keyDown.bind(this);
   }
 
   static get observedAttributes() {
@@ -120,6 +182,31 @@ class AppImageGallery extends HTMLElement {
     );
   }
 
+  activateImage(event) {
+    if (!event.path.find((value) => value.nodeName === 'SPAN')) {
+      const image = JSON.parse(event.target.getAttribute('image'));
+      this.imageToZoom = {
+        image,
+        activeImage: image.small,
+        activeIndex: 0,
+        action: 'zoom-in',
+      };
+      imageService.setImageToZoom(this.imageToZoom);
+      this.zoomContainer.classList.add('zoom-in');
+    }
+  }
+
+  removeZoomCursor() {
+    this.zoomContainer.classList.remove('zoom-in');
+    this.zoomContainer.classList.remove('zoom-out');
+  }
+
+  closeZoomImageContainer(event) {
+    event.stopImmediatePropagation();
+    imageService.setImageToZoom(null);
+    this.removeZoomCursor();
+  }
+
   processImage(image) {
     const appImageCard = document.createElement('app-image-card');
 
@@ -131,10 +218,100 @@ class AppImageGallery extends HTMLElement {
     this.appImageCards.push(appImageCard);
   }
 
+  zoomImage(imageToZoom) {
+    if (imageToZoom.action === 'zoom-in' && imageToZoom.activeIndex <= 2) {
+      this.zoomInImage(imageToZoom);
+    } else if (
+      imageToZoom.action === 'zoom-out' &&
+      imageToZoom.activeIndex >= 1
+    ) {
+      this.zoomOutImage(imageToZoom);
+    }
+
+    imageService.setImageToZoom(imageToZoom);
+  }
+
+  zoomInImage(imageToZoom) {
+    imageToZoom.activeIndex += 1;
+    switch (imageToZoom.activeIndex) {
+      case 1:
+        imageToZoom.activeImage = imageToZoom.image.regular;
+        break;
+      case 2:
+        imageToZoom.activeImage = imageToZoom.image.full;
+        imageToZoom.action = 'zoom-out';
+        this.zoomContainer.classList.remove('zoom-in');
+        this.zoomContainer.classList.add('zoom-out');
+        break;
+    }
+  }
+
+  zoomOutImage(imageToZoom) {
+    imageToZoom.activeIndex -= 1;
+    switch (imageToZoom.activeIndex) {
+      case 0:
+        imageToZoom.activeImage = imageToZoom.image.small;
+        imageToZoom.action = 'zoom-in';
+        this.zoomContainer.classList.remove('zoom-out');
+        this.zoomContainer.classList.add('zoom-in');
+        break;
+      case 1:
+        imageToZoom.activeImage = imageToZoom.image.regular;
+        break;
+    }
+  }
+
+  zoom() {
+    this.zoomImage(this.imageToZoom);
+  }
+
+  keyDown(event) {
+    const key = event.key;
+    if (key === 'Escape') {
+      imageService.setImageToZoom(null);
+      this.removeZoomCursor();
+    }
+  }
+
+  connectedCallback() {
+    imageService.imageToZoom$.subscribe((value) => {
+      this.imageToZoom = value;
+
+      if (value) {
+        this.zoomContainer.classList.remove('hide');
+        this.smartImage.setAttribute('src', value.activeImage);
+      } else {
+        this.smartImage.setAttribute('src', '');
+        this.zoomContainer.classList.add('hide');
+      }
+    });
+
+    // add event handler to close zoom container
+    this.closeZoomContainer.addEventListener(
+      'click',
+      this.closeZoomImageContainer
+    );
+
+    // handle click on zoom container
+    this.zoomContainer.addEventListener('click', this.zoom);
+
+    // close zoom container on escape
+    document.addEventListener('keydown', this.keyDown);
+  }
+
   disconnectedCallback() {
     this.appImageCards.forEach((card) => {
       card.removeEventListener('toggleLike', this.toggleLike);
     });
+
+    this.closeZoomContainer.removeEventListener(
+      'click',
+      this.closeZoomImageContainer
+    );
+
+    this.zoomContainer.removeEventListener('click', this.zoom);
+
+    document.removeEventListener('keydown', this.keyDown);
   }
 }
 

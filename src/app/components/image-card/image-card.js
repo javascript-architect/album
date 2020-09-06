@@ -87,7 +87,7 @@ class AppImageCard extends HTMLElement {
     this.setAttribute('image', JSON.stringify(value));
   }
 
-  toggleLike(event) {
+  toggleLike() {
     this.toggleIcons();
 
     this.dispatchEvent(
