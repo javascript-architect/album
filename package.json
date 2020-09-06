@@ -1,0 +1,31 @@
+{
+  "name": "javascript-photo-album",
+  "version": "1.0.0",
+  "description": "Pure javaScript photo album.",
+  "main": ".src/app/app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rimraf dist && webpack -p --config scripts/webpack.config.js",
+    "dev": "webpack-dev-server --mode development --config scripts/webpack.config.js --open",
+    "serve": "npm run build && http-server -c-1 -p 8080 dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "css-loader": "^4.2.2",
+    "file-loader": "^6.1.0",
+    "html-webpack-plugin": "^4.4.1",
+    "http-server": "^0.12.3",
+    "rimraf": "^3.0.2",
+    "script-loader": "^0.7.2",
+    "source-map-loader": "^1.1.0",
+    "style-loader": "^1.2.1",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12",
+    "webpack-dev-server": "^3.11.0"
+  },
+  "dependencies": {
+    "rxjs": "^6.6.2"
+  }
+}
